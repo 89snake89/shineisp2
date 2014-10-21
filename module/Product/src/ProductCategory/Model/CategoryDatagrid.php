@@ -42,7 +42,7 @@
  * @version @@PACKAGE_VERSION@@
  */
 
-namespace ProductAdmin\Model;
+namespace ProductCategory\Model;
 
 use ZfcDatagrid;
 use ZfcDatagrid\Column;
@@ -53,7 +53,7 @@ use ZfcDatagrid\Filter;
 use Zend\Db\Sql\Select;
 use Zend\Db\TableGateway\TableGateway;
 
-class ProductDatagrid {
+class CategoryDatagrid {
 	
 	/**
 	 *
@@ -67,11 +67,6 @@ class ProductDatagrid {
 	 */
 	protected $adapter;
 	
-	/**
-	 *
-	 * @var \Product\Service\ProductAttributeService
-	 */
-	protected $attributes;
 	/**
 	 *
 	 * @var \Zend\Db\TableGateway\TableGatewaye
@@ -90,20 +85,18 @@ class ProductDatagrid {
 	 * @param \Zend\Db\Adapter\Adapter $dbAdapter
 	 * @param \ZfcDatagrid\Datagrid $datagrid
 	 * @param \Base\Service\SettingsServiceInterface $settings
-	 * @param \Product\Service\ProductAttributeService $attributes
+	 * @param \ProductCategory\Service\CategoryAttributeService $attributes
 	 */
 	public function __construct(\Zend\Db\Adapter\Adapter $dbAdapter, 
 	                            \ZfcDatagrid\Datagrid $datagrid, 
 	                            \Base\Service\SettingsServiceInterface $settings,
-	                            TableGateway $productService,
-	                            \Product\Service\ProductAttributeService $attributes
+	                            TableGateway $categoryService
 	        )
 	{
 		$this->adapter = $dbAdapter;
 		$this->grid = $datagrid;
 		$this->settings = $settings;
-		$this->attributes = $attributes;
-		$this->tableGateway = $productService;
+		$this->tableGateway = $categoryService;
 	}
 	
 	/**
@@ -116,80 +109,27 @@ class ProductDatagrid {
 	}
 	
 	/**
-	 * Product list
+	 * Category list
 	 *
 	 * @return \ZfcDatagrid\Datagrid
 	 */
 	public function getDatagrid()
 	{
-	    $eavProduct = new \Product\Model\EavProduct($this->tableGateway);
 	    $records = array();
-	    $customAttributes = array();
 	   
 		$grid = $this->getGrid();
-		$grid->setId('productGrid');
+		$grid->setId('categoryGrid');
 		
 		$dbAdapter = $this->adapter;
 		$select = new Select();
-		$select->from(array ('p' => 'product'));
-
-		// execute the query 
-		$sql = new \Zend\Db\Sql\Sql($this->adapter);
-		$stmt = $sql->prepareStatementForSqlObject($select);
-		$results = $stmt->execute();
-
-		// execute the main query
-		$records = $this->tableGateway->select($select);
-
-		// load the attributes from the preferences
-		$columnsAttributesIdx = $this->settings->getValueByParameter('product', 'attributes');
+		$select->from(array ('c' => 'product_category'));
 		
-		if(!empty($columnsAttributesIdx)){
-		    
-		    // get from the database the custom attributes set as product preferences ($columnsAttributesIdx)
-		    $selectedAttributes = $this->attributes->findbyIdx(json_decode($columnsAttributesIdx, true));
-		    $selectedAttributes->buffer();
-		    
-		    // Get the selected product attribute values ONLY
-		    $attributes = $eavProduct->loadAttributes($results, $selectedAttributes);
-		    $attributesValues = $attributes->toArray();
-		    
-		    // loop the selected product attribute records
-		    foreach ($attributesValues as $recordId => $attributeValue){
-		        
-		        // loop the record selected values
-    		    foreach ($attributeValue as $id => $value){
-    		        
-    		        // get the attribute information
-    		        $theAttribute = $eavProduct->getAttribute($id);
-
-    		        // create a temporary array of data to merge with the main datagrid array
-    		        $customAttributes[$recordId][$theAttribute->getName()] = $value;
-
-    		        // Create a custom column on the grid
-    	            $col = new Column\Select($theAttribute->getName());
-    	            $col->setLabel(_($theAttribute->getLabel()));
-    	            $grid->addColumn($col);    		        
-
-    		    }
-		    }
-		    
-		    // Merge the temporary array with the main datagrid array
-		    foreach ($records as $record){
-		        $result[] = array_merge($record->getArrayCopy(), $customAttributes[$record->getId()]);
-		    }
-		    
-		}else{
-		    $result[] = $record->getArrayCopy();
-		}
-		
-		
-		$RecordsPerPage = $this->settings->getValueByParameter('product', 'recordsperpage');
-		
+		$RecordsPerPage = $this->settings->getValueByParameter('product_category', 'recordsperpage');
+			
 		$grid->setDefaultItemsPerPage($RecordsPerPage);
-		$grid->setDataSource($result);
+		$grid->setDataSource($select, $dbAdapter);
 		
-		$colId = new Column\Select('id');
+		$colId = new Column\Select('id', 'c');
 		$colId->setLabel('Id');
 		$colId->setIdentity();
 		$grid->addColumn($colId);
@@ -200,7 +140,7 @@ class ProductDatagrid {
 		$colType->setLocale('it_IT');
 		
 		
-		$col = new Column\Select('createdat');
+		$col = new Column\Select('createdat', 'c');
 		$col->setType($colType);
 		$col->setLabel(_('Created At'));
 		$col->setWidth(15);
@@ -208,17 +148,15 @@ class ProductDatagrid {
 		
 		// Add actions to the grid
 		$showaction = new Column\Action\Button();
-		$showaction->setAttribute('href', "/admin/product/edit/" . $showaction->getColumnValuePlaceholder(new Column\Select('id')));
+		$showaction->setAttribute('href', "/admin/category/edit/" . $showaction->getColumnValuePlaceholder(new Column\Select('id','c')));
 		$showaction->setAttribute('class', 'btn btn-xs btn-success');
 		$showaction->setLabel(_('edit'));
 		
 		$delaction = new Column\Action\Button();
-		$delaction->setAttribute('href', '/admin/product/delete/' . $delaction->getRowIdPlaceholder());
+		$delaction->setAttribute('href', '/admin/category/delete/' . $delaction->getRowIdPlaceholder());
 		$delaction->setAttribute('onclick', "return confirm('Are you sure?')");
 		$delaction->setAttribute('class', 'btn btn-xs btn-danger');
 		$delaction->setLabel(_('delete'));
-		
-		
 		
 		$col = new Column\Action();
 		$col->addAction($showaction);

@@ -15,11 +15,13 @@ return array(
 								// Generic route guards
 						        array('route' => 'product', 'roles' => array('guest')),
 						        array('route' => 'product/default', 'roles' => array('guest')),
-								
+						        array('route' => 'product/search', 'roles' => array('guest')),
+						        
+								array('route' => 'zfcadmin/category', 'roles' => array('admin')),
+								array('route' => 'zfcadmin/category/default', 'roles' => array('admin')),
 								array('route' => 'zfcadmin/product', 'roles' => array('admin')),
 								array('route' => 'zfcadmin/product/default', 'roles' => array('admin')),
 								array('route' => 'zfcadmin/product/settings', 'roles' => array('admin')),
-								
 								array('route' => 'zfcadmin/product/attributes', 'roles' => array('admin')),
 								array('route' => 'zfcadmin/product/groups', 'roles' => array('admin')),
 								array('route' => 'zfcadmin/product/sets', 'roles' => array('admin')),
@@ -48,6 +50,11 @@ return array(
 										array (
 												'label' => _('Products'),
 												'route' => 'zfcadmin/product',
+										        'icon' => 'fa fa-barcode',
+										),
+										array (
+												'label' => _('Category'),
+												'route' => 'zfcadmin/category',
 										        'icon' => 'fa fa-barcode',
 										),
 										array (
@@ -92,6 +99,33 @@ return array(
 				                ),
 				                'may_terminate' => true,
 								'child_routes' => array(
+										'category' => array(
+												'type' => 'Literal',
+												'options' => array(
+														'route' => '/category',
+														'defaults' => array(
+																'controller' => 'ProductCategory\Controller\Index',
+																'action'     => 'index',
+														),
+												),
+												'may_terminate' => true,
+												'child_routes' => array (
+														'default' => array (
+																'type' => 'Segment',
+																'options' => array (
+																		'route' => '/[:action[/:id][/:attribute][/:file]]',
+																		'constraints' => array (
+																				'action' => '[a-zA-Z][a-zA-Z0-9_-]*',
+																				'id' => '[.a-zA-Z0-9_-]*',
+																				'attribute' => '[0-9]*',
+																				'file' => '([.\s\w-]|%20){3,}',
+																		),
+																		'defaults' => array ()
+																)
+														),
+												),
+										
+										),
 										'product' => array(
 												'type' => 'Literal',
 												'options' => array(
@@ -172,6 +206,19 @@ return array(
 																		)
 																),
 														),
+														'search' => array(
+														        'type'    => 'Segment',
+														        'options' => array(
+														                'route'    => '/search/[query/:query]',
+														                'constraints' => array(
+														                        'query'     => '[a-zA-Z][a-zA-Z0-9_-]*',
+														                ),
+														                'defaults' => array(
+														                        'action'        => 'search',
+														                        'query'        => null,
+														                ),
+														        ),
+														),
 												),
 										),
 								),
@@ -196,7 +243,9 @@ return array(
 		        
 		    ),
 			'factories' => array(
+				'ProductCategory\Controller\Index' => 'ProductCategory\Factory\IndexControllerFactory',
 				'ProductAdmin\Controller\Index' => 'ProductAdmin\Factory\IndexControllerFactory',
+				'Base\Controller\Search' => 'Product\Factory\SearchControllerFactory',
 				'ProductAdmin\Controller\Attributes' => 'ProductAdmin\Factory\AttributesControllerFactory',
 				'ProductAdmin\Controller\AttributeGroups' => 'ProductAdmin\Factory\AttributeGroupsControllerFactory',
 				'ProductAdmin\Controller\AttributeSet' => 'ProductAdmin\Factory\AttributeSetControllerFactory',
